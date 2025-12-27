@@ -1,0 +1,49 @@
+# ==========================
+# Build Artifacts (CMake/CLion)
+# ==========================
+cmake-build-*/
+build/
+bin/
+lib/
+out/
+
+# ==========================
+# Compiled Binaries
+# ==========================
+*.exe
+*.dll
+*.lib
+*.a
+*.pdb
+*.exp
+*.ilk
+
+# ==========================
+# Dependencies (FFmpeg)
+# ==========================
+# Ignore the specific ffmpeg folder you created
+ffmpeg/
+
+# ==========================
+# IDE Settings (JetBrains/VSCode)
+# ==========================
+.idea/
+.vscode/
+*.user
+
+# ==========================
+# Test Output Images
+# ==========================
+# You usually don't want to commit the temporary images your tests create
+*.ppm
+*.pgm
+*.pam
+*.png
+*.jpg
+*.mp4
+
+# ==========================
+# OS Generated Files
+# ==========================
+.DS_Store
+Thumbs.db
