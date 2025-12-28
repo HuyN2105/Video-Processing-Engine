@@ -14,7 +14,7 @@
 #include "io/Decoder.h"
 #include "utils/Logger.h"
 
-using engine::utils::Logger::info, engine::utils::Logger::success, engine::utils::Logger::warn, engine::utils::Logger::error;
+namespace logger = engine::utils::Logger;
 
 char* openFileDialog() {
     OPENFILENAME ofn;
@@ -106,10 +106,10 @@ int main() {
 
     system("cls");
 
-    info("this is info");
-    success("this is success");
-    warn("this is warn");
-    error("this is error");
+    logger::info("this is info");
+    logger::success("this is success");
+    logger::warn("this is warn");
+    logger::error("this is error");
 
     return 0;
 }
