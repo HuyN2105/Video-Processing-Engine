@@ -4,14 +4,17 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
+
 #include <windows.h>
 #include <shlobj.h>
 #include <commdlg.h>
-
 #include "engine/Engine.h"
 #include "engine/Frame.h"
 #include "io/Decoder.h"
+#include "utils/Logger.h"
+
+using engine::utils::Logger::info, engine::utils::Logger::success, engine::utils::Logger::warn, engine::utils::Logger::error;
 
 char* openFileDialog() {
     OPENFILENAME ofn;
@@ -96,10 +99,17 @@ int main() {
     // engine::Engine::toGrayScale(frame);
     //
     // engine::Engine::savePPM(frame, "test_ppm.ppm");
+    //
+    // const std::string filepath = openFileDialog();
+    //
+    // engine::io::Decoder::printVideoInfo(filepath);
 
-    const std::string filepath = openFileDialog();
+    system("cls");
 
-    engine::io::Decoder::printVideoInfo(filepath);
+    info("this is info");
+    success("this is success");
+    warn("this is warn");
+    error("this is error");
 
     return 0;
 }

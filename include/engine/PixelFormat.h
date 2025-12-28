@@ -5,6 +5,8 @@
 #ifndef ENGINE_PIXELFORMAT_H
 #define ENGINE_PIXELFORMAT_H
 
+#pragma once
+
 namespace engine {
     enum class PixelFormat {
         RGB24, // 3 bytes per pixel

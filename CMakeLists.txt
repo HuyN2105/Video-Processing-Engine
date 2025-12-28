@@ -3,6 +3,19 @@ cmake_minimum_required(VERSION 3.20)
 project(Engine LANGUAGES CXX)
 
 # =====================
+# Fmt
+# =====================
+
+include(FetchContent)
+
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt
+        GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+
+FetchContent_MakeAvailable(fmt)
+
+# =====================
 # Options
 # =====================
 option(ENABLE_CUDA "Enable CUDA backend" OFF)
@@ -30,11 +43,17 @@ add_library(Engine STATIC
 
         # Metadata
         src/metadata.rc
+
+        # Utils
+        src/utils/Logger.h
+        src/utils/ThreadPool.h
+        src/utils/Timer.h
 )
 
 target_include_directories(Engine
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # =====================
@@ -70,9 +89,10 @@ endif()
 target_include_directories(engine_tests
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(engine_tests PRIVATE Engine comdlg32)
+target_link_libraries(engine_tests PRIVATE Engine comdlg32 fmt::fmt)
 
 # ==========================================
 # FFmpeg Manual Linking (Windows/MinGW)
@@ -91,4 +111,5 @@ target_link_libraries(Engine PUBLIC
         avformat
         avutil
         swscale
+        fmt::fmt
 )
