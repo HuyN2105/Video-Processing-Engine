@@ -40,11 +40,12 @@ namespace engine::io {
         avformat_free_context(formatCtx);
         if (avFrame) {
             av_frame_free(&avFrame);
-            avFrame = nullptr;
         }
         if (avPacket) {
             av_packet_free(&avPacket);
-            avPacket = nullptr;
+        }
+        if (swsCtx) {
+            sws_freeContext(swsCtx);
         }
     }
 
@@ -59,7 +60,7 @@ namespace engine::io {
             throw std::runtime_error("Decoder::open: Could not find stream information");
         }
 
-        const AVCodec* codec = nullptr;
+        const AVCodec *codec = nullptr;
         videoStreamIndex = av_find_best_stream(formatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &codec, 0);
 
         if (videoStreamIndex < 0) {
@@ -82,7 +83,6 @@ namespace engine::io {
             logger::error("Decoder::open: Could not open video codec");
             throw std::runtime_error("Decoder::open: Could not open video codec");
         }
-
     }
 
     void Decoder::printVideoInfo(const std::string &filepath) {
@@ -120,8 +120,74 @@ namespace engine::io {
     }
 
     bool Decoder::readFrame(engine::Frame &outFrame) {
-        // TODO: Implement frame reading with pixel format conversion
-        // This requires using swscale to convert from YUV to RGB
+        // Keep reading until found a video packet that decodes into a full frame
+        while (av_read_frame(formatCtx, avPacket) >= 0) {
+            // Is this a video packet?
+            if (avPacket->stream_index == videoStreamIndex) {
+                // Send packet to decoder
+                if (avcodec_send_packet(codecCtx, avPacket) < 0) {
+                    logger::error("Decoder::readFrame: Could not send packet");
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+
+                // Receive frame from decoder
+                // (One packet might generate 0, 1, or more frames)
+                int response = avcodec_receive_frame(codecCtx, avFrame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+                    // Not enough data yet, or end of stream
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+                if (response < 0) {
+                    logger::error("Decoder::readFrame: Error receiving Frame from Decoder");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // =========================================================
+                // CONVERSION TIME: YUV -> RGB
+                // =========================================================
+
+                // Initialize the Scaler (SwsContext) if it hasn't been created
+                // or if the Dimensions changed
+                // (Re)initialize the Scaler (SwsContext) using sws_getCachedContext
+                // so it is updated if the dimensions or pixel format change mid-stream.
+
+                // TODO: make sure it's RGB24
+
+                swsCtx = sws_getCachedContext(
+                    swsCtx,
+                    codecCtx->width, codecCtx->height, codecCtx->pix_fmt, // Input (video)
+                    outFrame.width, outFrame.height, AV_PIX_FMT_RGB24, // Output (Frame)
+                    SWS_BILINEAR, nullptr, nullptr, nullptr
+                );
+                if (!swsCtx) {
+                    logger::error("Decoder::readFrame: Could not initialize SwsContext");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // Prepare destination pointers for sws_scale
+                // Point to row(0) as it's a contiguous block
+                uint8_t *dest[4] = {outFrame.row(0), nullptr, nullptr, nullptr};
+                const int destLineSize[4] = {outFrame.stride, 0, 0, 0}; // 3 bytes per pixel for RGB24
+
+                // Perform the conversion
+                sws_scale(swsCtx,
+                          avFrame->data, avFrame->linesize, // Source (YUV)
+                          0, codecCtx->height, // Source height
+                          dest, destLineSize); // Destination (RGB)
+
+                // Clean up
+                av_packet_unref(avPacket);
+                return true;
+            }
+
+            // Unreferenced packet if it wasn't video
+            av_packet_unref(avPacket);
+        }
+
         return false;
     }
 

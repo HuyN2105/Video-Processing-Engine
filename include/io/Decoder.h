@@ -15,6 +15,7 @@ struct AVFormatContext;
 struct AVCodecContext;
 struct AVFrame;
 struct AVPacket;
+struct SwsContext;
 
 namespace engine::io {
     class Decoder {
@@ -39,6 +40,8 @@ namespace engine::io {
         AVCodecContext *codecCtx = nullptr; // The Codec (H.264, etc.)
         AVFrame *avFrame = nullptr; // The Raw Frame (YUV format)
         AVPacket *avPacket = nullptr; // The Compressed Data
+
+        SwsContext *swsCtx = nullptr;
 
         int videoStreamIndex = -1;
     };

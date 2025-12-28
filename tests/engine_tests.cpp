@@ -15,26 +15,27 @@
 #include "utils/Logger.h"
 
 namespace logger = engine::utils::Logger;
+namespace io = engine::io;
 
 char* openFileDialog() {
     OPENFILENAME ofn;
     char szFile[260] = {0};
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
+    ofn.hwndOwner = nullptr;
     ofn.lpstrFile = szFile;
     ofn.nMaxFile = sizeof(szFile);
     ofn.lpstrFilter = "All Files (*.*)\0*.*\0";
     ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
+    ofn.lpstrFileTitle = nullptr;
     ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
+    ofn.lpstrInitialDir = nullptr;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (GetOpenFileName(&ofn) == TRUE) {
         return _strdup(ofn.lpstrFile);
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -73,43 +74,23 @@ engine::Frame randomColorFrameCreate_RGBA32(const int width, const int height) {
 
 int main() {
 
-    // engine::Frame frame = randomColorFrameCreate_RGB24(1000, 1000);
-    //
-    // const int bytesPerPixel = frame.bytesPerPixel();
-    //
-    // for (int y = 200; y < 800; y++) {
-    //     uint8_t *row = frame.row(y);
-    //     for (int x = 200; x < 800; x++) {
-    //         if (x <= 350 || x >= 650) {
-    //             row[x * bytesPerPixel + 0] = static_cast<uint8_t>(0);
-    //             row[x * bytesPerPixel + 1] = static_cast<uint8_t>(0);
-    //             row[x * bytesPerPixel + 2] = static_cast<uint8_t>(0);
-    //             // row[x * bytesPerPixel + 3] = static_cast<uint8_t>(150);
-    //             continue;
-    //         }
-    //         if (y >= 450 && y <= 550) {
-    //             row[x * bytesPerPixel + 0] = static_cast<uint8_t>(0);
-    //             row[x * bytesPerPixel + 1] = static_cast<uint8_t>(0);
-    //             row[x * bytesPerPixel + 2] = static_cast<uint8_t>(0);
-    //             // row[x * bytesPerPixel + 3] = static_cast<uint8_t>(150);
-    //         }
-    //     }
-    // }
-    //
-    // engine::Engine::toGrayScale(frame);
-    //
-    // engine::Engine::savePPM(frame, "test_ppm.ppm");
-    //
-    // const std::string filepath = openFileDialog();
-    //
-    // engine::io::Decoder::printVideoInfo(filepath);
+    const std::string filepath = openFileDialog();
 
-    system("cls");
+    io::Decoder decoder;
 
-    logger::info("this is info");
-    logger::success("this is success");
-    logger::warn("this is warn");
-    logger::error("this is error");
+    decoder.open(filepath);
+
+    engine::Frame frame(decoder.getWidth(), decoder.getHeight(), engine::PixelFormat::RGB24);
+
+    int frameCount = 0;
+    while (decoder.readFrame(frame)) {
+        frameCount++;
+        if (frameCount % 30 == 0) {
+            engine::utils::Logger::info("Decoded frame {}", frameCount);
+
+            engine::Engine::savePPM(frame, "./test/debug_frame" + std::to_string(frameCount) + ".ppm");
+        }
+    }
 
     return 0;
 }
