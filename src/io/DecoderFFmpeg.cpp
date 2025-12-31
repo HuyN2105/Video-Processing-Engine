@@ -119,7 +119,7 @@ namespace engine::io {
         videoStreamIndex = -1;
     }
 
-    bool Decoder::readFrame(engine::Frame &outFrame) {
+    bool Decoder::readFrame(engine::Frame &outFrame, const AVPixelFormat PixelFormat) {
         // Keep reading until found a video packet that decodes into a full frame
         while (av_read_frame(formatCtx, avPacket) >= 0) {
             // Is this a video packet?
@@ -154,7 +154,85 @@ namespace engine::io {
                 // (Re)initialize the Scaler (SwsContext) using sws_getCachedContext
                 // so it is updated if the dimensions or pixel format change mid-stream.
 
-                // TODO: make sure it's RGB24
+                swsCtx = sws_getCachedContext(
+                    swsCtx,
+                    codecCtx->width, codecCtx->height, codecCtx->pix_fmt, // Input (video)
+                    outFrame.width, outFrame.height, PixelFormat, // Output (Frame)
+                    SWS_BILINEAR, nullptr, nullptr, nullptr
+                );
+                if (!swsCtx) {
+                    logger::error("Decoder::readFrame: Could not initialize SwsContext");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // Prepare destination pointers for sws_scale
+                // Point to row(0) as it's a contiguous block
+                uint8_t *dest[4] = {outFrame.row(0), nullptr, nullptr, nullptr};
+                const int destLineSize[4] = {outFrame.stride, 0, 0, 0}; // 3 bytes per pixel for RGB24
+
+                // Perform the conversion
+                sws_scale(swsCtx,
+                          avFrame->data, avFrame->linesize, // Source (YUV)
+                          0, codecCtx->height, // Source height
+                          dest, destLineSize); // Destination (RGB)
+
+                // Clean up
+                av_packet_unref(avPacket);
+                return true;
+            }
+
+            // Unreferenced packet if it wasn't video
+            av_packet_unref(avPacket);
+        }
+
+        return false;
+    }
+
+    bool Decoder::readFrame_RGB24(engine::Frame &outFrame) {
+        // Keep reading until found a video packet that decodes into a full frame
+
+        if (outFrame.pixelFormat != PixelFormat::RGB24) {
+            if (outFrame.pixelFormat == PixelFormat::RGBA32) {
+                logger::warn("Decoder::readFrame_RGB24: outFrame's pixel format detected to be RGBA32, redirected to readFrame_RGBA32(). Please consider making changes.");
+                return Decoder::readFrame_RGBA32(outFrame);
+            }
+            logger::error("Decoder::readFrame_RGB24: Could not detect pixel format or pixel format unsupported.");
+            return false;
+        }
+
+        while (av_read_frame(formatCtx, avPacket) >= 0) {
+            // Is this a video packet?
+            if (avPacket->stream_index == videoStreamIndex) {
+                // Send packet to decoder
+                if (avcodec_send_packet(codecCtx, avPacket) < 0) {
+                    logger::error("Decoder::readFrame: Could not send packet");
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+
+                // Receive frame from decoder
+                // (One packet might generate 0, 1, or more frames)
+                int response = avcodec_receive_frame(codecCtx, avFrame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+                    // Not enough data yet, or end of stream
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+                if (response < 0) {
+                    logger::error("Decoder::readFrame: Error receiving Frame from Decoder");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // =========================================================
+                // CONVERSION TIME: YUV -> RGB
+                // =========================================================
+
+                // Initialize the Scaler (SwsContext) if it hasn't been created
+                // or if the Dimensions changed
+                // (Re)initialize the Scaler (SwsContext) using sws_getCachedContext
+                // so it is updated if the dimensions or pixel format change mid-stream.
 
                 swsCtx = sws_getCachedContext(
                     swsCtx,
@@ -172,6 +250,86 @@ namespace engine::io {
                 // Point to row(0) as it's a contiguous block
                 uint8_t *dest[4] = {outFrame.row(0), nullptr, nullptr, nullptr};
                 const int destLineSize[4] = {outFrame.stride, 0, 0, 0}; // 3 bytes per pixel for RGB24
+
+                // Perform the conversion
+                sws_scale(swsCtx,
+                          avFrame->data, avFrame->linesize, // Source (YUV)
+                          0, codecCtx->height, // Source height
+                          dest, destLineSize); // Destination (RGB)
+
+                // Clean up
+                av_packet_unref(avPacket);
+                return true;
+            }
+
+            // Unreferenced packet if it wasn't video
+            av_packet_unref(avPacket);
+        }
+
+        return false;
+    }
+
+    bool Decoder::readFrame_RGBA32(engine::Frame &outFrame) {
+
+        if (outFrame.pixelFormat != PixelFormat::RGBA32) {
+            if (outFrame.pixelFormat == PixelFormat::RGB24) {
+                logger::warn("Decoder::readFrame_RGBA32: outFrame's pixel format detected to be RGB24, redirected to readFrame_RGB24(). Please consider making changes.");
+                return Decoder::readFrame_RGB24(outFrame);
+            }
+            logger::error("Decoder::readFrame_RGBA32: Could not detect pixel format or pixel format unsupported.");
+            return false;
+        }
+
+        // Keep reading until found a video packet that decodes into a full frame
+        while (av_read_frame(formatCtx, avPacket) >= 0) {
+            // Is this a video packet?
+            if (avPacket->stream_index == videoStreamIndex) {
+                // Send packet to decoder
+                if (avcodec_send_packet(codecCtx, avPacket) < 0) {
+                    logger::error("Decoder::readFrame: Could not send packet");
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+
+                // Receive frame from decoder
+                // (One packet might generate 0, 1, or more frames)
+                int response = avcodec_receive_frame(codecCtx, avFrame);
+                if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
+                    // Not enough data yet, or end of stream
+                    av_packet_unref(avPacket);
+                    continue;
+                }
+                if (response < 0) {
+                    logger::error("Decoder::readFrame: Error receiving Frame from Decoder");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // =========================================================
+                // CONVERSION TIME: YUV -> RGB
+                // =========================================================
+
+                // Initialize the Scaler (SwsContext) if it hasn't been created
+                // or if the Dimensions changed
+                // (Re)initialize the Scaler (SwsContext) using sws_getCachedContext
+                // so it is updated if the dimensions or pixel format change mid-stream.
+
+                swsCtx = sws_getCachedContext(
+                    swsCtx,
+                    codecCtx->width, codecCtx->height, codecCtx->pix_fmt, // Input (video)
+                    outFrame.width, outFrame.height, AV_PIX_FMT_RGBA, // Output (Frame)
+                    SWS_BILINEAR, nullptr, nullptr, nullptr
+                );
+                if (!swsCtx) {
+                    logger::error("Decoder::readFrame: Could not initialize SwsContext");
+                    av_packet_unref(avPacket);
+                    return false;
+                }
+
+                // Prepare destination pointers for sws_scale
+                // Point to row(0) as it's a contiguous block
+                uint8_t *dest[4] = {outFrame.row(0), nullptr, nullptr, nullptr};
+                const int destLineSize[4] = {outFrame.stride, 0, 0, 0 }; // 4 bytes per pixel for RGBA32
 
                 // Perform the conversion
                 sws_scale(swsCtx,

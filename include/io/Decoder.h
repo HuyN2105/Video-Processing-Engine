@@ -10,6 +10,7 @@
 #include <string>
 
 #include "engine/Frame.h"
+#include "libavutil/pixfmt.h"
 
 struct AVFormatContext;
 struct AVCodecContext;
@@ -25,9 +26,11 @@ namespace engine::io {
         ~Decoder();
 
         void open(const std::string &filepath);
-
-        bool readFrame(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
         void close();
+
+        bool readFrame(engine::Frame &outFrame, AVPixelFormat PixelFormat); // True if a Frame was read from video | False if end of File
+        bool readFrame_RGB24(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
+        bool readFrame_RGBA32(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
 
         int getWidth() const;
 

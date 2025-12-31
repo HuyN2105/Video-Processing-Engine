@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 #include <windows.h>
 #include <shlobj.h>
@@ -14,10 +15,9 @@
 #include "io/Decoder.h"
 #include "utils/Logger.h"
 
-namespace logger = engine::utils::Logger;
 namespace io = engine::io;
 
-char* openFileDialog() {
+char *openFileDialog() {
     OPENFILENAME ofn;
     char szFile[260] = {0};
     ZeroMemory(&ofn, sizeof(ofn));
@@ -72,24 +72,86 @@ engine::Frame randomColorFrameCreate_RGBA32(const int width, const int height) {
     return frame;
 }
 
-int main() {
+/*
+62
+#     #              #     #
+#     # #    # #   # ##    #
+#     # #    #  # #  # #   #
+####### #    #   #   #  #  #
+#     # #    #   #   #   # #
+#     # #    #   #   #    ##
+#     #  ####    #   #     # 125
 
-    const std::string filepath = openFileDialog();
+ */
 
-    io::Decoder decoder;
+// Add blueMark
+void addBlueMark(engine::Frame &frame) {
 
-    decoder.open(filepath);
+    if (frame.pixelFormat != engine::PixelFormat::RGBA32) {
+        engine::utils::Logger::error("addBlueMark: pixelFormat not supported.");
+        return;
+    }
 
-    engine::Frame frame(decoder.getWidth(), decoder.getHeight(), engine::PixelFormat::RGB24);
+    const std::vector<std::vector<int> > bitmap = {
+        {1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1},
+        {1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1},
+        {1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1},
+        {1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1},
+        {1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1},
+        {1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1},
+        {1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1}
+    };
 
-    int frameCount = 0;
-    while (decoder.readFrame(frame)) {
-        frameCount++;
-        if (frameCount % 30 == 0) {
-            engine::utils::Logger::info("Decoded frame {}", frameCount);
+    const int bytePerPixel = frame.bytesPerPixel();
 
-            engine::Engine::savePPM(frame, "./test/debug_frame" + std::to_string(frameCount) + ".ppm");
+    for (int y = 102; y < 977; y++) {
+        uint8_t *row = frame.row(y);
+        for (int x = 92; x < 1828; x++) {
+            if (bitmap[(y - 102) / 125][(x - 92) / 62] == 1) {
+                row[x * bytePerPixel + 3] = static_cast<uint8_t>(100);
+            }
         }
+    }
+
+}
+
+int main() {
+    using engine::utils::Logger::error;
+    using engine::utils::Logger::info;
+    using engine::utils::Logger::success;
+    using engine::utils::Logger::warn;
+
+    const char *filepath = openFileDialog();
+
+    if (!filepath) {
+        error("No file was selected.");
+        return 1;
+    }
+
+    try {
+        io::Decoder decoder;
+        decoder.open(filepath);
+
+        engine::Frame frame(decoder.getWidth(), decoder.getHeight(), engine::PixelFormat::RGBA32);
+
+        int frameCount = 0;
+
+        while (decoder.readFrame_RGBA32(frame)) {
+            frameCount++;
+            if (frameCount % 30 == 0) {
+                info("Decoded frame {}", frameCount);
+            }
+
+            if (frameCount % 100 == 0) {
+                addBlueMark(frame);
+                engine::Engine::savePAM(frame, "./test/debug_frame" + std::to_string(frameCount) + ".pam");
+                success("Snapshot of frame {} has been successfully saved.", frameCount);
+            }
+        }
+
+        success("Finished! Total Frames: {}", frameCount);
+    } catch (std::exception &e) {
+        error("Error: {}", e.what());
     }
 
     return 0;
