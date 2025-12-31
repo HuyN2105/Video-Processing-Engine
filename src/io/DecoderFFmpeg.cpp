@@ -194,7 +194,8 @@ namespace engine::io {
 
         if (outFrame.pixelFormat != PixelFormat::RGB24) {
             if (outFrame.pixelFormat == PixelFormat::RGBA32) {
-                logger::warn("Decoder::readFrame_RGB24: outFrame's pixel format detected to be RGBA32, redirected to readFrame_RGBA32(). Please consider making changes.");
+                logger::warn(
+                    "Decoder::readFrame_RGB24: outFrame's pixel format detected to be RGBA32, redirected to readFrame_RGBA32(). Please consider making changes.");
                 return Decoder::readFrame_RGBA32(outFrame);
             }
             logger::error("Decoder::readFrame_RGB24: Could not detect pixel format or pixel format unsupported.");
@@ -270,10 +271,10 @@ namespace engine::io {
     }
 
     bool Decoder::readFrame_RGBA32(engine::Frame &outFrame) {
-
         if (outFrame.pixelFormat != PixelFormat::RGBA32) {
             if (outFrame.pixelFormat == PixelFormat::RGB24) {
-                logger::warn("Decoder::readFrame_RGBA32: outFrame's pixel format detected to be RGB24, redirected to readFrame_RGB24(). Please consider making changes.");
+                logger::warn(
+                    "Decoder::readFrame_RGBA32: outFrame's pixel format detected to be RGB24, redirected to readFrame_RGB24(). Please consider making changes.");
                 return Decoder::readFrame_RGB24(outFrame);
             }
             logger::error("Decoder::readFrame_RGBA32: Could not detect pixel format or pixel format unsupported.");
@@ -329,7 +330,7 @@ namespace engine::io {
                 // Prepare destination pointers for sws_scale
                 // Point to row(0) as it's a contiguous block
                 uint8_t *dest[4] = {outFrame.row(0), nullptr, nullptr, nullptr};
-                const int destLineSize[4] = {outFrame.stride, 0, 0, 0 }; // 4 bytes per pixel for RGBA32
+                const int destLineSize[4] = {outFrame.stride, 0, 0, 0}; // 4 bytes per pixel for RGBA32
 
                 // Perform the conversion
                 sws_scale(swsCtx,

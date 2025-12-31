@@ -86,7 +86,6 @@ engine::Frame randomColorFrameCreate_RGBA32(const int width, const int height) {
 
 // Add blueMark
 void addBlueMark(engine::Frame &frame) {
-
     if (frame.pixelFormat != engine::PixelFormat::RGBA32) {
         engine::utils::Logger::error("addBlueMark: pixelFormat not supported.");
         return;
@@ -112,7 +111,6 @@ void addBlueMark(engine::Frame &frame) {
             }
         }
     }
-
 }
 
 int main() {

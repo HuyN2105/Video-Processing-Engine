@@ -28,17 +28,17 @@ namespace engine {
 
         Frame() = default;
 
-        Frame(int width, int height, PixelFormat pixelFormat) : width(width), height(height), pixelFormat(pixelFormat) {
+        Frame(const int width, const int height, const PixelFormat pixelFormat) : width(width), height(height), pixelFormat(pixelFormat) {
             stride = bytesPerPixel() * width;
             data.resize(stride * height);
         }
 
         [[nodiscard]] int bytesPerPixel() const {
             switch (pixelFormat) {
-                case PixelFormat::RGB24:    return 3;
-                case PixelFormat::RGBA32:   return 4;
-                case PixelFormat::GRAY8:    return 1;
-                default:                    return 0;
+                case PixelFormat::RGB24: return 3;
+                case PixelFormat::RGBA32: return 4;
+                case PixelFormat::GRAY8: return 1;
+                default: return 0;
             }
         }
 
@@ -49,7 +49,6 @@ namespace engine {
         [[nodiscard]] const uint8_t *row(const int y) const {
             return data.data() + y * stride;
         }
-
     };
 }
 

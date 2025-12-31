@@ -26,9 +26,12 @@ namespace engine::io {
         ~Decoder();
 
         void open(const std::string &filepath);
+
         void close();
 
-        bool readFrame(engine::Frame &outFrame, AVPixelFormat PixelFormat); // True if a Frame was read from video | False if end of File
+        bool readFrame(engine::Frame &outFrame, AVPixelFormat PixelFormat);
+
+        // True if a Frame was read from video | False if end of File
         bool readFrame_RGB24(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
         bool readFrame_RGBA32(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
 
