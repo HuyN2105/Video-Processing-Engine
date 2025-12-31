@@ -54,7 +54,7 @@ namespace engine {
         file << "HEIGHT " << frame.height << "\n";
         file << "DEPTH " << frame.bytesPerPixel() << "\n";
         file << "MAXVAL 255\n";
-        file << "TUPLTYPE RGB_ALPHA\n"; // Standard name for RGBA
+        file << "TUPLETYPE RGB_ALPHA\n"; // Standard name for RGBA
         file << "ENDHDR\n";
 
         for (int y = 0; y < frame.height; y++) {
@@ -120,6 +120,46 @@ namespace engine {
                 row[i + 0] = YLinear;
                 row[i + 1] = YLinear;
                 row[i + 2] = YLinear;
+            }
+        }
+    }
+
+    void Engine::convertRGB24toRGBA32(const engine::Frame &src, engine::Frame &dest) {
+        // Safety checks
+        if (src.width != dest.width || src.height != dest.height) {
+            logger::error("convertRGB24toRGBA32: dimension mismatch between src and dest frame");
+            throw std::runtime_error("convertRGB24toRGBA32: dimension mismatch between src and dest frame");
+        }
+        if (src.pixelFormat != PixelFormat::RGB24) {
+            logger::error("convertRGB24toRGBA32: src frame must be in RGB24 format");
+            throw std::runtime_error("convertRGB24toRGBA32: src frame must be in RGB24 format");
+        }
+        if (dest.pixelFormat != PixelFormat::RGBA32) {
+            logger::error("convertRGB24toRGBA32: dest frame must be in RGBA32 format");
+            throw std::runtime_error("convertRGB24toRGBA32: dest frame must be in RGBA32 format");
+        }
+
+        const int width = src.width;
+        const int height = src.height;
+
+        for (int y = 0; y < height; ++y) {
+            // Get pointers to the start of the row
+            const uint8_t *srcRow = src.row(y);
+            uint8_t *destRow = dest.row(y);
+
+            for (int x = 0; x < width; ++x) {
+                // Calculate index for the current pixel
+                // RGB24 stride is 3, RGBA32 stride is 4
+                const int srcIndex = x * src.bytesPerPixel();
+                const int destIndex = x * dest.bytesPerPixel();
+
+                // Copy Colors
+                destRow[destIndex + 0] = srcRow[srcIndex + 0]; // R
+                destRow[destIndex + 1] = srcRow[srcIndex + 1]; // G
+                destRow[destIndex + 2] = srcRow[srcIndex + 2]; // B
+
+                // Add Alpha (255 = Opaque, 0 = Transparent)
+                destRow[destIndex + 3] = 255;
             }
         }
     }
