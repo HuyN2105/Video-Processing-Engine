@@ -7,6 +7,7 @@
 
 #include "engine/Engine.h"
 #include "engine/Frame.h"
+#include "libavformat/avformat.h"
 #include "utils/Logger.h"
 
 namespace logger = engine::utils::Logger;
@@ -54,7 +55,7 @@ namespace engine {
         file << "HEIGHT " << frame.height << "\n";
         file << "DEPTH " << frame.bytesPerPixel() << "\n";
         file << "MAXVAL 255\n";
-        file << "TUPLETYPE RGB_ALPHA\n"; // Standard name for RGBA
+        file << "TUPLTYPE RGB_ALPHA\n"; // Standard name for RGBA
         file << "ENDHDR\n";
 
         for (int y = 0; y < frame.height; y++) {

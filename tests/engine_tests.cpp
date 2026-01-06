@@ -10,6 +10,8 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <commdlg.h>
+#include <iostream>
+
 #include "engine/Engine.h"
 #include "engine/Frame.h"
 #include "io/Decoder.h"
@@ -126,31 +128,39 @@ int main() {
         return 1;
     }
 
-    try {
-        io::Decoder decoder;
-        decoder.open(filepath);
+    io::Decoder decoder;
 
-        engine::Frame frame(decoder.getWidth(), decoder.getHeight(), engine::PixelFormat::RGBA32);
+    decoder.open(filepath);
 
-        int frameCount = 0;
+    const double fps = decoder.getFPS(filepath);
 
-        while (decoder.readFrame_RGBA32(frame)) {
-            frameCount++;
-            if (frameCount % 30 == 0) {
-                info("Decoded frame {}", frameCount);
-            }
+    std::cout << "FPS: " << fps << "\n";
 
-            if (frameCount % 100 == 0) {
-                addBlueMark(frame);
-                engine::Engine::savePAM(frame, "./test/debug_frame" + std::to_string(frameCount) + ".pam");
-                success("Snapshot of frame {} has been successfully saved.", frameCount);
-            }
-        }
-
-        success("Finished! Total Frames: {}", frameCount);
-    } catch (std::exception &e) {
-        error("Error: {}", e.what());
-    }
+    // try {
+    //     io::Decoder decoder;
+    //     decoder.open(filepath);
+    //
+    //     engine::Frame frame(decoder.getWidth(), decoder.getHeight(), engine::PixelFormat::RGBA32);
+    //
+    //     int frameCount = 0;
+    //
+    //     while (decoder.readFrame_RGBA32(frame)) {
+    //         frameCount++;
+    //         if (frameCount % 30 == 0) {
+    //             info("Decoded frame {}", frameCount);
+    //         }
+    //
+    //         if (frameCount % 100 == 0) {
+    //             addBlueMark(frame);
+    //             engine::Engine::savePAM(frame, "./test/debug_frame" + std::to_string(frameCount) + ".pam");
+    //             success("Snapshot of frame {} has been successfully saved.", frameCount);
+    //         }
+    //     }
+    //
+    //     success("Finished! Total Frames: {}", frameCount);
+    // } catch (std::exception &e) {
+    //     error("Error: {}", e.what());
+    // }
 
     return 0;
 }

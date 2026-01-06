@@ -357,4 +357,40 @@ namespace engine::io {
     int Decoder::getHeight() const {
         return codecCtx ? codecCtx->height : 0;
     }
+
+    double Decoder::getFPS(const std::string &filepath = "") {
+        if (fps >= 0) return fps;
+
+        if (formatCtx == nullptr) {
+            if (filepath.empty()) {
+                logger::error("Decoder::getFPS: no file opened and filepath is empty. Please include a filepath or open a video file before getFPS");
+            }
+            logger::warn("Decoder::getFPS: no video file opened. A video opened using included filepath");
+            open(filepath);
+        }
+
+        // Find the first video stream
+        unsigned int video_stream_index = -1;
+        for (unsigned int i = 0; i < formatCtx->nb_streams; i++) {
+            if (formatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+                video_stream_index = i;
+                break;
+            }
+        }
+
+        if (video_stream_index == -1) {
+            logger::error("No video stream found");
+            avformat_close_input(&formatCtx);
+            return -1;
+        }
+
+        const AVStream *video_stream = formatCtx->streams[video_stream_index];
+
+        // Get FPS from avg_frame_rate
+        const AVRational fr = video_stream->avg_frame_rate;
+        fps = av_q2d(fr);
+
+        avformat_close_input(&formatCtx);
+        return fps;
+    }
 }

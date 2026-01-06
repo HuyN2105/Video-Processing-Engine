@@ -35,9 +35,11 @@ namespace engine::io {
         bool readFrame_RGB24(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
         bool readFrame_RGBA32(engine::Frame &outFrame); // True if a Frame was read from video | False if end of File
 
-        int getWidth() const;
+        [[nodiscard]] int getWidth() const;
 
-        int getHeight() const;
+        [[nodiscard]] int getHeight() const;
+
+        double getFPS(const std::string &filepath);
 
         static void printVideoInfo(const std::string &filepath);
 
@@ -50,6 +52,7 @@ namespace engine::io {
         SwsContext *swsCtx = nullptr;
 
         int videoStreamIndex = -1;
+        double fps = -1;
     };
 }
 
